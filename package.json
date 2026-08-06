@@ -13,12 +13,14 @@
     "db:seed": "npx ts-node --project prisma/tsconfig.seed.json prisma/seed.ts",
     "db:setup-turso": "npx ts-node --project prisma/tsconfig.seed.json prisma/setup-turso.ts"
   },
+  "postinstall": "prisma generate",
   "dependencies": {
     "@libsql/client": "^0.8.0",
     "@prisma/adapter-libsql": "^5.22.0",
     "@prisma/client": "^5.19.0",
     "@tanstack/react-query": "^5.101.4",
     "bcryptjs": "^3.0.3",
+    "dotenv": "^17.4.2",
     "next": "^14.2.0",
     "next-auth": "^4.24.15",
     "react": "^18.3.0",
