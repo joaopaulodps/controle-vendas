@@ -22,6 +22,7 @@ interface ItemFormProps {
   onRemoveItem: (index: number) => void
   onUpdateItem: (index: number, field: keyof Item, value: any) => void
   showPrice?: boolean
+  showHeader?: boolean
   disabled?: boolean
 }
 
@@ -32,21 +33,24 @@ export const ItemForm = memo(function ItemForm({
   onRemoveItem,
   onUpdateItem,
   showPrice = true,
+  showHeader = true,
   disabled = false,
 }: ItemFormProps) {
   return (
     <div>
-      <div className="flex justify-between items-center mb-2">
-        <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Itens</label>
-        <button
-          type="button"
-          onClick={onAddItem}
-          className="text-sm text-blue-600 hover:underline dark:text-blue-400"
-          disabled={disabled}
-        >
-          + Adicionar item
-        </button>
-      </div>
+      {showHeader && (
+        <div className="flex justify-between items-center mb-2">
+          <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Itens</label>
+          <button
+            type="button"
+            onClick={onAddItem}
+            className="text-sm text-blue-600 hover:underline dark:text-blue-400"
+            disabled={disabled}
+          >
+            + Adicionar item
+          </button>
+        </div>
+      )}
       <div className="space-y-3">
         {itens.map((item, i) => (
           <div key={i} className="p-3 border rounded-lg dark:border-gray-600">

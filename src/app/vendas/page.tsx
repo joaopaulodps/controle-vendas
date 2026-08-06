@@ -331,6 +331,7 @@ export default function VendasPage() {
               onRemoveItem={removeItem}
               onUpdateItem={updateItem}
               showPrice={!isSorteio}
+              showHeader={false}
             />
             {!isSorteio && (
               <div className="text-right mt-2 text-lg font-bold text-gray-700 dark:text-gray-300">

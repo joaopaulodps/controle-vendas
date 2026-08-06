@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { formatCurrency, formatDate, FORMAS_PAGAMENTO_MAP } from '@/lib/utils'
+import { formatCurrency, formatDate, FORMAS_PAGAMENTO_MAP, statusParcela } from '@/lib/utils'
 import { Message } from '@/components/ui/Message'
 
 interface Pagamento {
@@ -16,26 +16,6 @@ interface Pagamento {
   dataVencimento: string
   dataPagamento: string | null
   pago: boolean
-}
-
-function toDate(d: string) {
-  return new Date(d + (d.includes('T') ? '' : 'T00:00:00'))
-}
-
-function diasAteVencimento(dataVencimento: string) {
-  const hoje = new Date()
-  hoje.setHours(0, 0, 0, 0)
-  const vencimento = toDate(dataVencimento)
-  return Math.ceil((vencimento.getTime() - hoje.getTime()) / (1000 * 60 * 60 * 24))
-}
-
-function statusVencimento(dataVencimento: string, pago: boolean) {
-  if (pago) return { label: 'Pago', className: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' }
-  const dias = diasAteVencimento(dataVencimento)
-  if (dias < 0) return { label: `Vencido há ${Math.abs(dias)} dia(s)`, className: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' }
-  if (dias === 0) return { label: 'Vence hoje', className: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400' }
-  if (dias <= 3) return { label: `Vence em ${dias} dia(s)`, className: 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400' }
-  return { label: `Vence em ${dias} dia(s)`, className: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400' }
 }
 
 export default function PagamentosPage() {
@@ -71,7 +51,7 @@ export default function PagamentosPage() {
   const statusMap = useMemo(() => {
     const map = new Map<number, { label: string; className: string }>()
     for (const p of pagamentos) {
-      map.set(p.id, statusVencimento(p.dataVencimento, p.pago))
+      map.set(p.id, statusParcela(p.dataVencimento, p.pago ? p.dataPagamento : null))
     }
     return map
   }, [pagamentos])

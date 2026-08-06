@@ -21,7 +21,7 @@ export function formatDate(d: string | Date | null | undefined): string {
   try {
     const date = new Date(d)
     if (isNaN(date.getTime())) return '-'
-    return date.toLocaleDateString('pt-BR')
+    return date.toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo' })
   } catch {
     return '-'
   }
@@ -37,15 +37,21 @@ export function calcularTotalItens(
   return itens.reduce((s, i) => s + i.quantidade * (i.usarPrecoReal ? i.precoReal : i.precoEstimado), 0)
 }
 
-function toDate(d: string) {
-  return new Date(d + (d.includes('T') ? '' : 'T00:00:00'))
+function toBrasiliaDate(d: string): Date {
+  const date = new Date(d + (d.includes('T') ? '' : 'T12:00:00'))
+  return new Date(date.toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' }))
+}
+
+function hojeBrasilia(): Date {
+  return new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' }))
 }
 
 function diasAteVencimento(dataVencimento: string) {
-  const hoje = new Date()
+  const hoje = hojeBrasilia()
   hoje.setHours(0, 0, 0, 0)
-  const vencimento = toDate(dataVencimento)
-  return Math.ceil((vencimento.getTime() - hoje.getTime()) / (1000 * 60 * 60 * 24))
+  const vencimento = toBrasiliaDate(dataVencimento)
+  vencimento.setHours(0, 0, 0, 0)
+  return Math.round((vencimento.getTime() - hoje.getTime()) / (1000 * 60 * 60 * 24))
 }
 
 export function statusParcela(dataVencimento: string, dataPagamento: string | null | undefined) {

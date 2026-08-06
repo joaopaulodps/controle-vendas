@@ -136,23 +136,67 @@ function MapaNumeros({
     return resultado
   }, [sorteio, filtroNumero])
 
+  function imprimirMapa() {
+    const mapaCompleto = []
+    for (let i = 1; i <= sorteio.totalNumeros; i++) {
+      const item = sorteio.itens.find(it => it.numero === i)
+      mapaCompleto.push({ numero: i, vendido: !!item, cliente: item?.nomeCliente || '' })
+    }
+
+    const printWindow = window.open('', '_blank')
+    if (!printWindow) return
+
+    const cellSize = Math.max(36, Math.min(50, Math.floor(700 / Math.ceil(Math.sqrt(sorteio.totalNumeros)))))
+    const cols = Math.floor(700 / (cellSize + 4))
+
+    let cellsHtml = ''
+    for (const m of mapaCompleto) {
+      const bg = m.vendido ? '#ef4444' : '#22c55e'
+      cellsHtml += `<div style="width:${cellSize}px;height:${cellSize}px;display:flex;align-items:center;justify-content:center;background:${bg};color:white;border-radius:4px;font-size:12px;font-weight:500;">${m.numero}</div>`
+    }
+
+    printWindow.document.write(`
+      <html>
+        <head><title>Mapa de Números - ${sorteio.nome}</title></head>
+        <body style="font-family:Arial,sans-serif;padding:20px;">
+          <h2 style="margin:0 0 4px 0;">${sorteio.nome}</h2>
+          <p style="margin:0 0 2px 0;color:#666;font-size:13px;">${sorteio.totalNumeros - sorteio._count.itens} disponíveis / ${sorteio._count.itens} vendidos</p>
+          <div style="display:flex;gap:12px;margin:8px 0 16px 0;font-size:12px;">
+            <span>● <span style="color:#22c55e;">Disponível</span></span>
+            <span>● <span style="color:#ef4444;">Vendido</span></span>
+          </div>
+          <div style="display:grid;grid-template-columns:repeat(${cols}, ${cellSize + 4}px);gap:4px;">
+            ${cellsHtml}
+          </div>
+          <script>window.onload=function(){window.print();window.close();}<\/script>
+        </body>
+      </html>
+    `)
+    printWindow.document.close()
+  }
+
   return (
     <div className="card mb-4">
       <div className="flex justify-between items-center mb-4">
         <h3 className="font-medium dark:text-white">Mapa de Números</h3>
-        <input
-          type="text"
-          placeholder="Buscar número ou cliente..."
-          value={filtroNumero}
-          onChange={e => onFiltroChange(e.target.value)}
-          className="input max-w-xs text-sm"
-        />
+        <div className="flex gap-2 items-center">
+          <input
+            type="text"
+            placeholder="Buscar número ou cliente..."
+            value={filtroNumero}
+            onChange={e => onFiltroChange(e.target.value)}
+            className="input max-w-xs text-sm"
+          />
+          <button onClick={imprimirMapa} className="btn-secondary text-xs whitespace-nowrap">
+            🖨 Imprimir
+          </button>
+        </div>
       </div>
       <div className="flex gap-4 mb-3 text-xs">
         <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-green-400 inline-block"></span> Disponível</span>
         <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-red-400 inline-block"></span> Vendido</span>
       </div>
-      <div className="grid grid-cols-5 sm:grid-cols-8 md:grid-cols-10 lg:grid-cols-12 gap-1.5 max-h-64 overflow-y-auto">
+      <div className="grid grid-cols-5 sm:grid-cols-8 md:grid-cols-10 lg:grid-cols-12 xl:grid-cols-16 gap-1.5">
         {mapa.map(m => (
           <div
             key={m.numero}

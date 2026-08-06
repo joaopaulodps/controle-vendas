@@ -290,6 +290,7 @@ export default function ComprasPage() {
               onAddItem={addItem}
               onRemoveItem={removeItem}
               onUpdateItem={updateItem}
+              showHeader={false}
             />
             <div className="text-right mt-2 text-lg font-bold text-gray-700 dark:text-gray-300">
               Total: {formatCurrency(totalItens)}
