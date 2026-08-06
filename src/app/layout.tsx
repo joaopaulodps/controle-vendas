@@ -4,6 +4,8 @@ import Link from 'next/link'
 import Providers from '@/components/Providers'
 import Navbar from '@/components/Navbar'
 
+export const dynamic = 'force-dynamic'
+
 export const metadata: Metadata = {
   title: 'Controle de Vendas',
   description: 'Sistema de controle de compras e vendas',
