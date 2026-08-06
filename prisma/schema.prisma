@@ -63,9 +63,10 @@ model Produto {
   createdAt     DateTime @default(now()) @map("created_at")
   updatedAt     DateTime @updatedAt @map("updated_at")
 
-  marca       Marca?       @relation(fields: [marcaId], references: [id])
-  itensCompra ItemCompra[]
-  itensVenda  ItemVenda[]
+  marca          Marca?            @relation(fields: [marcaId], references: [id])
+  itensCompra    ItemCompra[]
+  itensVenda     ItemVenda[]
+  produtosSorteio ProdutoSorteio[]
 
   @@map("produtos")
 }
@@ -172,8 +173,9 @@ model Sorteio {
   createdAt     DateTime  @default(now()) @map("created_at")
   updatedAt     DateTime  @updatedAt @map("updated_at")
 
-  itens  ItemSorteio[]
-  vendas Venda[]
+  itens            ItemSorteio[]
+  vendas           Venda[]
+  produtosSorteio  ProdutoSorteio[]
 
   @@map("sorteios")
 }
@@ -190,4 +192,19 @@ model ItemSorteio {
 
   @@unique([sorteioId, numero])
   @@map("itens_sorteio")
+}
+
+model ProdutoSorteio {
+  id          Int     @id @default(autoincrement())
+  sorteioId   Int     @map("sorteio_id")
+  produtoId   Int     @map("produto_id")
+  quantidade  Int
+  precoUnitario Float @map("preco_unitario")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  sorteio Sorteio @relation(fields: [sorteioId], references: [id])
+  produto Produto @relation(fields: [produtoId], references: [id])
+
+  @@unique([sorteioId, produtoId])
+  @@map("produtos_sorteio")
 }

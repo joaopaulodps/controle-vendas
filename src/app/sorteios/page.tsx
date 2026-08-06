@@ -9,6 +9,14 @@ import { NovoClienteForm } from '@/components/forms/NovoClienteForm'
 
 interface Cliente { id: number; nome: string; cpf: string | null; telefone: string | null }
 interface ItemSorteio { numero: number; clienteId: number | null; nomeCliente: string; createdAt: string }
+interface ProdutoSorteio {
+  id: number; sorteioId: number; produtoId: number; quantidade: number; precoUnitario: string; createdAt: string
+  produto: { id: number; nome: string; estoque: number; unidade: string }
+}
+interface Produto {
+  id: number; nome: string; codigoProduto: string | null; estoque: number; unidade: string
+  marca?: { id: number; nome: string } | null
+}
 interface SorteioList {
   id: number; nome: string; descricao: string | null; totalNumeros: number
   valorIngresso: string; dataSorteio: string | null; status: string
@@ -16,6 +24,7 @@ interface SorteioList {
 }
 interface SorteioDetail extends SorteioList {
   itens: ItemSorteio[]
+  produtosSorteio: ProdutoSorteio[]
 }
 
 function SorteioForm({
@@ -223,6 +232,193 @@ function MapaNumeros({
   )
 }
 
+function ProdutosVinculados({
+  sorteio,
+  produtos,
+  produtosVinculados,
+  formProduto,
+  onFormChange,
+  onAdd,
+  onEdit,
+  onRemove,
+  editandoProduto,
+  onEditStart,
+  onEditCancel,
+  isPending,
+}: {
+  sorteio: SorteioDetail
+  produtos: Produto[]
+  produtosVinculados: ProdutoSorteio[]
+  formProduto: { produtoId: string; quantidade: string; precoUnitario: string }
+  onFormChange: (f: any) => void
+  onAdd: (e: React.FormEvent) => void
+  onEdit: (item: ProdutoSorteio) => void
+  onRemove: (itemId: number) => void
+  editandoProduto: number | null
+  onEditStart: (item: ProdutoSorteio) => void
+  onEditCancel: () => void
+  isPending: boolean
+}) {
+  const [editForm, setEditForm] = useState({ quantidade: '', precoUnitario: '' })
+  const [editId, setEditId] = useState<number | null>(null)
+
+  function startEdit(item: ProdutoSorteio) {
+    setEditId(item.id)
+    setEditForm({ quantidade: String(item.quantidade), precoUnitario: item.precoUnitario })
+  }
+
+  function cancelEdit() {
+    setEditId(null)
+    setEditForm({ quantidade: '', precoUnitario: '' })
+  }
+
+  async function saveEdit() {
+    if (!editId) return
+    try {
+      const res = await fetch(`/api/sorteios/${sorteio.id}/produtos`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ itemId: editId, quantidade: parseInt(editForm.quantidade), precoUnitario: parseFloat(editForm.precoUnitario) }),
+      })
+      if (!res.ok) {
+        const data = await res.json()
+        alert(data.error)
+        return
+      }
+      cancelEdit()
+      onEdit({ id: editId } as ProdutoSorteio)
+    } catch (err) {
+      alert('Erro ao atualizar')
+    }
+  }
+
+  const produtosDisponiveis = produtos.filter(p => {
+    const jaVinculado = produtosVinculados.some(v => v.produtoId === p.id)
+    return !jaVinculado
+  })
+
+  const custoTotal = produtosVinculados.reduce((acc, item) => acc + item.quantidade * Number(item.precoUnitario), 0)
+
+  return (
+    <div className="card">
+      <h3 className="font-medium mb-2 dark:text-white">Produtos Vinculados</h3>
+
+      {sorteio.status === 'aberto' && (
+        <form onSubmit={onAdd} className="grid grid-cols-1 md:grid-cols-4 gap-2 mb-4">
+          <div>
+            <label className="text-xs text-muted mb-1 block">Produto *</label>
+            <select
+              value={formProduto.produtoId}
+              onChange={e => onFormChange({ ...formProduto, produtoId: e.target.value })}
+              className="input text-sm"
+              required
+            >
+              <option value="">Selecione...</option>
+              {produtosDisponiveis.map(p => (
+                <option key={p.id} value={p.id}>{p.nome} (Estoque: {p.estoque} {p.unidade})</option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="text-xs text-muted mb-1 block">Quantidade *</label>
+            <input
+              type="number"
+              min={1}
+              required
+              value={formProduto.quantidade}
+              onChange={e => onFormChange({ ...formProduto, quantidade: e.target.value })}
+              className="input text-sm"
+              placeholder="Qtd"
+            />
+          </div>
+          <div>
+            <label className="text-xs text-muted mb-1 block">Preço Unitário (R$) *</label>
+            <input
+              type="number"
+              step="0.01"
+              min={0}
+              required
+              value={formProduto.precoUnitario}
+              onChange={e => onFormChange({ ...formProduto, precoUnitario: e.target.value })}
+              className="input text-sm"
+              placeholder="0,00"
+            />
+          </div>
+          <div className="flex items-end">
+            <button type="submit" className="btn-success w-full text-sm" disabled={isPending}>Vincular</button>
+          </div>
+        </form>
+      )}
+
+      {produtosVinculados.length === 0 ? (
+        <p className="text-muted text-sm">Nenhum produto vinculado.</p>
+      ) : (
+        <>
+          <div className="max-h-60 overflow-y-auto">
+            <table className="w-full">
+              <thead className="table-header sticky top-0">
+                <tr>
+                  <th className="table-cell text-left">Produto</th>
+                  <th className="table-cell text-center">Qtd</th>
+                  <th className="table-cell text-right">Preço Unit.</th>
+                  <th className="table-cell text-right">Subtotal</th>
+                  {sorteio.status === 'aberto' && <th className="table-cell text-center">Ações</th>}
+                </tr>
+              </thead>
+              <tbody className="divide-y dark:divide-gray-700">
+                {produtosVinculados.map(item => (
+                  <tr key={item.id} className="table-row">
+                    <td className="table-cell text-sm font-medium">{item.produto.nome}</td>
+                    <td className="table-cell text-center text-sm">
+                      {editId === item.id ? (
+                        <input type="number" min={1} value={editForm.quantidade} onChange={e => setEditForm({ ...editForm, quantidade: e.target.value })} className="input text-xs py-1 w-16 text-center" />
+                      ) : (
+                        item.quantidade
+                      )}
+                    </td>
+                    <td className="table-cell text-right text-sm">
+                      {editId === item.id ? (
+                        <input type="number" step="0.01" min={0} value={editForm.precoUnitario} onChange={e => setEditForm({ ...editForm, precoUnitario: e.target.value })} className="input text-xs py-1 w-24 text-right" />
+                      ) : (
+                        formatCurrency(Number(item.precoUnitario))
+                      )}
+                    </td>
+                    <td className="table-cell text-right text-sm font-medium">
+                      {editId === item.id
+                        ? formatCurrency(parseInt(editForm.quantidade || '0') * parseFloat(editForm.precoUnitario || '0'))
+                        : formatCurrency(item.quantidade * Number(item.precoUnitario))
+                      }
+                    </td>
+                    {sorteio.status === 'aberto' && (
+                      <td className="table-cell text-center">
+                        {editId === item.id ? (
+                          <>
+                            <button onClick={saveEdit} className="text-green-600 hover:underline text-xs mr-2" disabled={isPending}>Salvar</button>
+                            <button onClick={cancelEdit} className="text-gray-500 hover:underline text-xs">Cancelar</button>
+                          </>
+                        ) : (
+                          <>
+                            <button onClick={() => startEdit(item)} className="text-blue-600 hover:underline text-xs mr-2 dark:text-blue-400">Editar</button>
+                            <button onClick={() => onRemove(item.id)} className="text-red-600 hover:underline text-xs" disabled={isPending}>Remover</button>
+                          </>
+                        )}
+                      </td>
+                    )}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <div className="mt-3 pt-3 border-t dark:border-gray-700 flex justify-between items-center">
+            <span className="text-sm font-medium dark:text-white">Custo Total:</span>
+            <span className="text-lg font-bold text-red-600 dark:text-red-400">{formatCurrency(custoTotal)}</span>
+          </div>
+        </>
+      )}
+    </div>
+  )
+}
+
 function NumerosVendidos({
   sorteio,
   clientes,
@@ -312,6 +508,8 @@ export default function SorteiosPage() {
   const [editItemForm, setEditItemForm] = useState({ clienteId: '', nomeCliente: '' })
   const [msg, setMsg] = useState('')
   const [filtroNumero, setFiltroNumero] = useState('')
+  const [produtoForm, setProdutoForm] = useState({ produtoId: '', quantidade: '', precoUnitario: '' })
+  const [editandoProduto, setEditandoProduto] = useState<number | null>(null)
 
   const { data: sorteios = [], isLoading } = useQuery<SorteioList[]>({
     queryKey: ['sorteios'],
@@ -329,11 +527,22 @@ export default function SorteiosPage() {
     enabled: !!sorteioSelecionadoId,
   })
 
+  const { data: produtos = [] } = useQuery<Produto[]>({
+    queryKey: ['produtos'],
+    queryFn: () => fetch('/api/produtos').then(r => r.json()),
+  })
+
+  const { data: produtosVinculados = [], refetch: refetchProdutos } = useQuery<ProdutoSorteio[]>({
+    queryKey: ['produtosSorteio', sorteioSelecionadoId],
+    queryFn: () => fetch(`/api/sorteios/${sorteioSelecionadoId}/produtos`).then(r => r.json()),
+    enabled: !!sorteioSelecionadoId,
+  })
+
   const mutation = useApiMutation({
-    invalidateKeys: ['sorteios', 'clientes'],
+    invalidateKeys: ['sorteios', 'clientes', 'produtos'],
     onSuccess: () => {
       if (sorteioSelecionadoId) {
-        // Invalidar detalhe do sorteio selecionado
+        refetchProdutos()
       }
     },
   })
@@ -460,6 +669,54 @@ export default function SorteiosPage() {
     setEditItemForm({ clienteId: item.clienteId ? String(item.clienteId) : '', nomeCliente: item.nomeCliente })
   }, [])
 
+  async function vincularProduto(e: React.FormEvent) {
+    e.preventDefault()
+    if (!sorteioSelecionadoId) return
+    setMsg('')
+    try {
+      const res = await fetch(`/api/sorteios/${sorteioSelecionadoId}/produtos`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          produtoId: parseInt(produtoForm.produtoId),
+          quantidade: parseInt(produtoForm.quantidade),
+          precoUnitario: parseFloat(produtoForm.precoUnitario),
+        }),
+      })
+      if (!res.ok) {
+        const data = await res.json()
+        setMsg(data.error)
+        return
+      }
+      setProdutoForm({ produtoId: '', quantidade: '', precoUnitario: '' })
+      refetchProdutos()
+    } catch (err: any) {
+      setMsg(err.message)
+    }
+  }
+
+  async function removerProdutoVinculado(itemId: number) {
+    if (!sorteioSelecionadoId) return
+    if (!confirm('Remover este produto da vinculação?')) return
+    try {
+      const res = await fetch(`/api/sorteios/${sorteioSelecionadoId}/produtos?itemId=${itemId}`, {
+        method: 'DELETE',
+      })
+      if (!res.ok) {
+        const data = await res.json()
+        setMsg(data.error)
+        return
+      }
+      refetchProdutos()
+    } catch (err: any) {
+      setMsg(err.message)
+    }
+  }
+
+  async function refreshProdutos() {
+    refetchProdutos()
+  }
+
   return (
     <div>
       <div className="flex justify-between items-center mb-6">
@@ -538,7 +795,7 @@ export default function SorteiosPage() {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-3 gap-4 mb-6">
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
                   <div className="text-center p-3 bg-gray-50 rounded-lg dark:bg-gray-700">
                     <p className="text-sm text-muted">Vendidos</p>
                     <p className="text-xl font-bold text-blue-600 dark:text-blue-400">
@@ -555,6 +812,33 @@ export default function SorteiosPage() {
                     <p className="text-sm text-muted">Arrecadado</p>
                     <p className="text-xl font-bold text-purple-600 dark:text-purple-400">
                       {formatCurrency(sorteioDetalhe._count.itens * Number(sorteioDetalhe.valorIngresso))}
+                    </p>
+                  </div>
+                  <div className="text-center p-3 bg-gray-50 rounded-lg dark:bg-gray-700">
+                    <p className="text-sm text-muted">Custo Produtos</p>
+                    <p className="text-xl font-bold text-red-600 dark:text-red-400">
+                      {formatCurrency(produtosVinculados.reduce((acc, item) => acc + item.quantidade * Number(item.precoUnitario), 0))}
+                    </p>
+                  </div>
+                  <div className="text-center p-3 bg-gray-50 rounded-lg dark:bg-gray-700 md:col-span-2">
+                    <p className="text-sm text-muted">
+                      {(() => {
+                        const arrecadado = sorteioDetalhe._count.itens * Number(sorteioDetalhe.valorIngresso)
+                        const custo = produtosVinculados.reduce((acc, item) => acc + item.quantidade * Number(item.precoUnitario), 0)
+                        const lucro = arrecadado - custo
+                        return lucro >= 0 ? 'Lucro' : 'Prejuízo'
+                      })()}
+                    </p>
+                    <p className={`text-xl font-bold ${(() => {
+                      const arrecadado = sorteioDetalhe._count.itens * Number(sorteioDetalhe.valorIngresso)
+                      const custo = produtosVinculados.reduce((acc, item) => acc + item.quantidade * Number(item.precoUnitario), 0)
+                      return arrecadado - custo >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'
+                    })()}`}>
+                      {(() => {
+                        const arrecadado = sorteioDetalhe._count.itens * Number(sorteioDetalhe.valorIngresso)
+                        const custo = produtosVinculados.reduce((acc, item) => acc + item.quantidade * Number(item.precoUnitario), 0)
+                        return formatCurrency(arrecadado - custo)
+                      })()}
                     </p>
                   </div>
                 </div>
@@ -599,6 +883,21 @@ export default function SorteiosPage() {
                   sorteio={sorteioDetalhe}
                   filtroNumero={filtroNumero}
                   onFiltroChange={setFiltroNumero}
+                />
+
+                <ProdutosVinculados
+                  sorteio={sorteioDetalhe}
+                  produtos={produtos}
+                  produtosVinculados={produtosVinculados}
+                  formProduto={produtoForm}
+                  onFormChange={setProdutoForm}
+                  onAdd={vincularProduto}
+                  onEdit={refreshProdutos}
+                  onRemove={removerProdutoVinculado}
+                  editandoProduto={editandoProduto}
+                  onEditStart={(item) => setEditandoProduto(item.id)}
+                  onEditCancel={() => setEditandoProduto(null)}
+                  isPending={mutation.isPending}
                 />
 
                 <NumerosVendidos
