@@ -7,9 +7,7 @@ export async function GET() {
       orderBy: { nome: 'asc' },
       take: 200,
     })
-    return NextResponse.json(marcas, {
-      headers: { 'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=300' },
-    })
+    return NextResponse.json(marcas)
   } catch (error) {
     return NextResponse.json({ error: 'Erro ao buscar marcas' }, { status: 500 })
   }

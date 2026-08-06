@@ -13,9 +13,7 @@ export async function GET() {
         sorteio: { select: { id: true, nome: true } },
       },
     })
-    return NextResponse.json(serializeDecimal(vendas), {
-      headers: { 'Cache-Control': 'public, s-maxage=30, stale-while-revalidate=120' },
-    })
+    return NextResponse.json(serializeDecimal(vendas))
   } catch (error) {
     return NextResponse.json({ error: 'Erro ao buscar vendas' }, { status: 500 })
   }

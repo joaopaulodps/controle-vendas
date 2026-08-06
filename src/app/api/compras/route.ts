@@ -12,9 +12,7 @@ export async function GET() {
         pagamentos: true,
       },
     })
-    return NextResponse.json(serializeDecimal(compras), {
-      headers: { 'Cache-Control': 'public, s-maxage=30, stale-while-revalidate=120' },
-    })
+    return NextResponse.json(serializeDecimal(compras))
   } catch (error) {
     return NextResponse.json({ error: 'Erro ao buscar compras' }, { status: 500 })
   }

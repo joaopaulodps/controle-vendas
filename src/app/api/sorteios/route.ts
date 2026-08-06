@@ -11,9 +11,7 @@ export async function GET() {
         _count: { select: { itens: true, vendas: true } },
       },
     })
-    return NextResponse.json(serializeDecimal(sorteios), {
-      headers: { 'Cache-Control': 'public, s-maxage=30, stale-while-revalidate=120' },
-    })
+    return NextResponse.json(serializeDecimal(sorteios))
   } catch (error) {
     return NextResponse.json({ error: 'Erro ao buscar sorteios' }, { status: 500 })
   }

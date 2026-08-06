@@ -55,9 +55,7 @@ export async function GET(request: NextRequest) {
       return new Date(a.dataVencimento).getTime() - new Date(b.dataVencimento).getTime()
     })
 
-    return NextResponse.json(pagamentos, {
-      headers: { 'Cache-Control': 'public, s-maxage=30, stale-while-revalidate=120' },
-    })
+    return NextResponse.json(pagamentos)
   } catch (error) {
     return NextResponse.json({ error: 'Erro ao buscar pagamentos' }, { status: 500 })
   }

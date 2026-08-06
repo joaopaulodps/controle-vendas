@@ -16,9 +16,7 @@ export async function GET() {
         marca: { select: { id: true, nome: true } },
       },
     })
-    return NextResponse.json(produtos, {
-      headers: { 'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=300' },
-    })
+    return NextResponse.json(produtos)
   } catch (error) {
     return NextResponse.json({ error: 'Erro ao buscar produtos' }, { status: 500 })
   }
