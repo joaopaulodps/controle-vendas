@@ -1,0 +1,181 @@
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["driverAdapters"]
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Usuario {
+  id        Int      @id @default(autoincrement())
+  nome      String
+  usuario   String   @unique
+  senha     String
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("usuarios")
+}
+
+model Marca {
+  id        Int      @id @default(autoincrement())
+  nome      String
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  produtos Produto[]
+
+  @@map("marcas")
+}
+
+model Cliente {
+  id         Int      @id @default(autoincrement())
+  nome       String
+  cpf        String?
+  telefone   String?
+  email      String?
+  endereco   String?
+  observacao  String?
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  @@map("clientes")
+}
+
+model Produto {
+  id            Int      @id @default(autoincrement())
+  nome          String
+  codigoProduto String?  @map("codigoProduto")
+  marcaId       Int?     @map("marca_id")
+  estoque       Int      @default(0)
+  unidade       String   @default("un")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  marca       Marca?       @relation(fields: [marcaId], references: [id])
+  itensCompra ItemCompra[]
+  itensVenda  ItemVenda[]
+
+  @@map("produtos")
+}
+
+model Compra {
+  id         Int      @id @default(autoincrement())
+  fornecedor String
+  dataCompra DateTime @default(now()) @map("data_compra")
+  valorTotal Float    @map("valor_total")
+  observacao String?
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  itens      ItemCompra[]
+  pagamentos PagamentoCompra[]
+
+  @@map("compras")
+}
+
+model ItemCompra {
+  id            Int     @id @default(autoincrement())
+  compraId      Int     @map("compra_id")
+  produtoId     Int     @map("produto_id")
+  quantidade    Int
+  precoEstimado Float   @map("preco_estimado")
+  precoReal     Float   @map("preco_real")
+
+  compra  Compra  @relation(fields: [compraId], references: [id])
+  produto Produto @relation(fields: [produtoId], references: [id])
+
+  @@map("itens_compra")
+}
+
+model PagamentoCompra {
+  id             Int       @id @default(autoincrement())
+  compraId       Int       @map("compra_id")
+  formaPagamento String    @map("forma_pagamento")
+  parcela        Int       @default(1)
+  valor          Float
+  dataVencimento DateTime  @map("data_vencimento")
+  dataPagamento  DateTime? @map("data_pago")
+  createdAt      DateTime  @default(now()) @map("created_at")
+
+  compra Compra @relation(fields: [compraId], references: [id])
+
+  @@map("pagamentos_compra")
+}
+
+model Venda {
+  id         Int      @id @default(autoincrement())
+  cliente    String
+  clienteId  Int?     @map("cliente_id")
+  dataVenda  DateTime @default(now()) @map("data_venda")
+  valorTotal Float    @map("valor_total")
+  observacao String?
+  sorteioId  Int?     @map("sorteio_id")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  itens      ItemVenda[]
+  pagamentos PagamentoVenda[]
+  sorteio    Sorteio?  @relation(fields: [sorteioId], references: [id])
+
+  @@map("vendas")
+}
+
+model ItemVenda {
+  id            Int     @id @default(autoincrement())
+  vendaId       Int     @map("venda_id")
+  produtoId     Int     @map("produto_id")
+  quantidade    Int
+  precoEstimado Float   @map("preco_estimado")
+  precoReal     Float   @map("preco_real")
+
+  venda   Venda   @relation(fields: [vendaId], references: [id])
+  produto Produto @relation(fields: [produtoId], references: [id])
+
+  @@map("itens_venda")
+}
+
+model PagamentoVenda {
+  id             Int       @id @default(autoincrement())
+  vendaId        Int       @map("venda_id")
+  formaPagamento String    @map("forma_pagamento")
+  parcela        Int       @default(1)
+  valor          Float
+  dataVencimento DateTime  @map("data_vencimento")
+  dataPagamento  DateTime? @map("data_pago")
+  createdAt      DateTime  @default(now()) @map("created_at")
+
+  venda Venda @relation(fields: [vendaId], references: [id])
+
+  @@map("pagamentos_venda")
+}
+
+model Sorteio {
+  id            Int       @id @default(autoincrement())
+  nome          String
+  descricao     String?
+  totalNumeros  Int       @map("total_numeros")
+  valorIngresso Float     @map("valor_ingresso")
+  dataSorteio   DateTime? @map("data_sorteio")
+  status        String    @default("aberto")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+
+  itens  ItemSorteio[]
+  vendas Venda[]
+
+  @@map("sorteios")
+}
+
+model ItemSorteio {
+  id          Int      @id @default(autoincrement())
+  sorteioId   Int      @map("sorteio_id")
+  numero      Int
+  clienteId   Int?     @map("cliente_id")
+  nomeCliente String   @default("") @map("nome_cliente")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  sorteio Sorteio @relation(fields: [sorteioId], references: [id])
+
+  @@unique([sorteioId, numero])
+  @@map("itens_sorteio")
+}

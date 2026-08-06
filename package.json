@@ -1,0 +1,40 @@
+{
+  "name": "controle-vendas",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev --turbo",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "db:generate": "prisma generate",
+    "db:baseline": "prisma migrate diff --from-empty --to-schema-datamodel prisma/schema.prisma --script > prisma/baseline.sql",
+    "db:push-turso": "turso db shell controle-vendas < prisma/baseline.sql",
+    "db:seed": "npx ts-node --project prisma/tsconfig.seed.json prisma/seed.ts",
+    "db:setup-turso": "npx ts-node --project prisma/tsconfig.seed.json prisma/setup-turso.ts"
+  },
+  "dependencies": {
+    "@libsql/client": "^0.8.0",
+    "@prisma/adapter-libsql": "^5.22.0",
+    "@prisma/client": "^5.19.0",
+    "@tanstack/react-query": "^5.101.4",
+    "bcryptjs": "^3.0.3",
+    "next": "^14.2.0",
+    "next-auth": "^4.24.15",
+    "react": "^18.3.0",
+    "react-dom": "^18.3.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.14.0",
+    "@types/react": "^18.3.0",
+    "@types/react-dom": "^18.3.0",
+    "autoprefixer": "^10.5.4",
+    "eslint": "^8.57.1",
+    "eslint-config-next": "^14.2.35",
+    "postcss": "^8.4.47",
+    "prisma": "^5.19.0",
+    "tailwindcss": "^3.4.19",
+    "ts-node": "^10.9.0",
+    "typescript": "^5.5.0"
+  }
+}
