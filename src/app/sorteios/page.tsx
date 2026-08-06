@@ -157,7 +157,12 @@ function MapaNumeros({
 
     printWindow.document.write(`
       <html>
-        <head><title>Mapa de Números - ${sorteio.nome}</title></head>
+        <head>
+          <title>Mapa de Números - ${sorteio.nome}</title>
+          <style>
+            * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; color-adjust: exact !important; }
+          </style>
+        </head>
         <body style="font-family:Arial,sans-serif;padding:20px;">
           <h2 style="margin:0 0 4px 0;">${sorteio.nome}</h2>
           <p style="margin:0 0 2px 0;color:#666;font-size:13px;">${sorteio.totalNumeros - sorteio._count.itens} disponíveis / ${sorteio._count.itens} vendidos</p>
