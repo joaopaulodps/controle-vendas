@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic'
+
 import { prisma } from '@/lib/prisma'
 import { serializeDecimal } from '@/lib/serialize'
 import { NextRequest, NextResponse } from 'next/server'
