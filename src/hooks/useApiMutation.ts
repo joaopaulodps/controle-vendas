@@ -29,6 +29,7 @@ export function useApiMutation(options: UseApiMutationOptions = {}) {
       if (options.invalidateKeys) {
         options.invalidateKeys.forEach(key => {
           queryClient.invalidateQueries({ queryKey: [key] })
+          queryClient.refetchQueries({ queryKey: [key] })
         })
       }
       options.onSuccess?.()
