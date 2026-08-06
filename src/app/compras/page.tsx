@@ -1,25 +1,26 @@
 'use client'
 
-import { useState, useMemo, useCallback } from 'react'
-import { useQuery } from '@tanstack/react-query'
-import { useApiMutation } from '@/hooks/useApiMutation'
-import { formatCurrency, formatDate, formaPagamentoLabel, calcularTotalItens, FORMAS_PAGAMENTO } from '@/lib/utils'
+import { useState, useMemo, useCallback, useEffect } from 'react'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { formatCurrency, formatDate, formaPagamentoLabel, calcularTotalItens, FORMAS_PAGAMENTO, statusParcela } from '@/lib/utils'
 import { Message } from '@/components/ui/Message'
 import { ItemForm } from '@/components/forms/ItemForm'
 import { ParcelaForm } from '@/components/forms/ParcelaForm'
 
 interface Marca { id: number; nome: string }
 interface Produto { id: number; nome: string; estoque: number; codigoProduto: string | null }
+interface Fornecedor { id: number; nome: string }
 interface Item { produtoId: number; quantidade: number; precoEstimado: number; precoReal: number; usarPrecoReal: boolean }
 interface Parcela { valor: number; dataVencimento: string; editavel: boolean }
 interface Compra {
-  id: number; fornecedor: string; dataCompra: string; valorTotal: string
+  id: number; fornecedor: string; fornecedorId: number | null; dataCompra: string; valorTotal: string
   itens: { produto: { nome: string }; quantidade: number; precoEstimado: string; precoReal: string }[]
-  pagamentos: { formaPagamento: string; parcela: number; valor: string; dataVencimento: string }[]
+  pagamentos: { formaPagamento: string; parcela: number; valor: string; dataVencimento: string; dataPagamento: string | null }[]
 }
 
 export default function ComprasPage() {
-  const [fornecedor, setFornecedor] = useState('')
+  const queryClient = useQueryClient()
+  const [fornecedorId, setFornecedorId] = useState<number | null>(null)
   const [observacao, setObservacao] = useState('')
   const [itens, setItens] = useState<Item[]>([{ produtoId: 0, quantidade: 1, precoEstimado: 0, precoReal: 0, usarPrecoReal: false }])
   const [formaPagamento, setFormaPagamento] = useState('pix')
@@ -46,9 +47,53 @@ export default function ComprasPage() {
     queryFn: () => fetch('/api/marcas').then(r => r.json()),
   })
 
-  const mutation = useApiMutation({ invalidateKeys: ['compras', 'produtos', 'marcas'] })
+  const { data: fornecedores = [] } = useQuery<Fornecedor[]>({
+    queryKey: ['fornecedores'],
+    queryFn: () => fetch('/api/fornecedores').then(r => r.json()),
+  })
+
+  const mutation = useMutation({
+    mutationFn: async (data: any) => {
+      const res = await fetch(data.url, {
+        method: data.method,
+        headers: { 'Content-Type': 'application/json' },
+        body: data.body ? JSON.stringify(data.body) : undefined,
+      })
+      if (!res.ok) {
+        const err = await res.json()
+        throw new Error(err.error || 'Erro na operação')
+      }
+      return res.json()
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['compras'] })
+      queryClient.invalidateQueries({ queryKey: ['produtos'] })
+      queryClient.invalidateQueries({ queryKey: ['marcas'] })
+      queryClient.invalidateQueries({ queryKey: ['fornecedores'] })
+    },
+  })
 
   const totalItens = useMemo(() => calcularTotalItens(itens), [itens])
+
+  useEffect(() => {
+    if (fornecedorId === null && fornecedores.length > 0) {
+      const boticario = fornecedores.find(f => f.nome.toLowerCase().includes('boticário') || f.nome.toLowerCase().includes('boticario'))
+      if (boticario) setFornecedorId(boticario.id)
+    }
+  }, [fornecedores, fornecedorId])
+
+  useEffect(() => {
+    if (totalItens > 0 && parcelas.length > 0 && parcelas.every(p => p.valor === 0)) {
+      const valorParcela = totalItens / parcelas.length
+      setParcelas(prev => prev.map((p, i) => ({
+        ...p,
+        valor: i === prev.length - 1
+          ? Math.round((totalItens - valorParcela * (prev.length - 1)) * 100) / 100
+          : Math.round(valorParcela * 100) / 100,
+      })))
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [totalItens, parcelas.length])
 
   const addItem = useCallback(() => {
     setItens(prev => [...prev, { produtoId: 0, quantidade: 1, precoEstimado: 0, precoReal: 0, usarPrecoReal: false }])
@@ -139,12 +184,26 @@ export default function ComprasPage() {
     }
   }
 
+  async function excluirCompra(id: number) {
+    if (!confirm('Tem certeza que deseja excluir esta compra? O estoque será removido.')) return
+    try {
+      await mutation.mutateAsync({ method: 'DELETE', url: `/api/compras/${id}` })
+      setMsg('Compra excluída com sucesso!')
+    } catch (err: any) {
+      setMsg(err.message)
+    }
+  }
+
   async function salvar(e: React.FormEvent) {
     e.preventDefault()
     setMsg('')
     const validos = itens.filter(i => i.produtoId > 0 && i.quantidade > 0)
-    if (!fornecedor || validos.length === 0) {
-      setMsg('Preencha o fornecedor e adicione pelo menos um item')
+    if (!fornecedorId) {
+      setMsg('Selecione um fornecedor')
+      return
+    }
+    if (validos.length === 0) {
+      setMsg('Adicione pelo menos um item')
       return
     }
 
@@ -153,6 +212,8 @@ export default function ComprasPage() {
       setMsg('Preencha pelo menos uma parcela com valor e data de vencimento')
       return
     }
+
+    const fornecedor = fornecedores.find(f => f.id === fornecedorId)
 
     const itensParaEnviar = validos.map(i => ({
       produtoId: i.produtoId,
@@ -172,9 +233,15 @@ export default function ComprasPage() {
       await mutation.mutateAsync({
         method: 'POST',
         url: '/api/compras',
-        body: { fornecedor, observacao, itens: itensParaEnviar, pagamentos: pagamentosParaEnviar },
+        body: {
+          fornecedor: fornecedor?.nome || '',
+          fornecedorId,
+          observacao,
+          itens: itensParaEnviar,
+          pagamentos: pagamentosParaEnviar,
+        },
       })
-      setFornecedor('')
+      setFornecedorId(fornecedores.find(f => f.nome.toLowerCase().includes('boticário') || f.nome.toLowerCase().includes('boticario'))?.id || null)
       setObservacao('')
       setItens([{ produtoId: 0, quantidade: 1, precoEstimado: 0, precoReal: 0, usarPrecoReal: false }])
       setFormaPagamento('pix')
@@ -196,7 +263,12 @@ export default function ComprasPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="label">Fornecedor *</label>
-              <input type="text" required value={fornecedor} onChange={e => setFornecedor(e.target.value)} className="input" placeholder="Nome do fornecedor" />
+              <select required value={fornecedorId || ''} onChange={e => setFornecedorId(Number(e.target.value) || null)} className="input">
+                <option value="">Selecione um fornecedor...</option>
+                {fornecedores.map(f => (
+                  <option key={f.id} value={f.id}>{f.nome}</option>
+                ))}
+              </select>
             </div>
             <div>
               <label className="label">Observação</label>
@@ -207,7 +279,10 @@ export default function ComprasPage() {
           <div>
             <div className="flex justify-between items-center mb-2">
               <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Itens</label>
-              <button type="button" onClick={() => setMostrarNovoProduto(true)} className="text-sm text-green-600 hover:underline dark:text-green-400">+ Novo produto</button>
+              <div className="flex gap-3">
+                <button type="button" onClick={addItem} className="text-sm text-blue-600 hover:underline dark:text-blue-400">+ Adicionar item</button>
+                <button type="button" onClick={() => setMostrarNovoProduto(true)} className="text-sm text-green-600 hover:underline dark:text-green-400">+ Novo produto</button>
+              </div>
             </div>
             <ItemForm
               itens={itens}
@@ -284,13 +359,14 @@ export default function ComprasPage() {
               <th className="table-cell text-left">Itens</th>
               <th className="table-cell text-right">Total</th>
               <th className="table-cell text-left">Pagamento</th>
+              <th className="table-cell text-center">Ações</th>
             </tr>
           </thead>
           <tbody className="divide-y dark:divide-gray-700">
             {isLoading ? (
-              <tr><td colSpan={6} className="table-cell text-center py-8 text-muted">Carregando...</td></tr>
+              <tr><td colSpan={7} className="table-cell text-center py-8 text-muted">Carregando...</td></tr>
             ) : compras.length === 0 ? (
-              <tr><td colSpan={6} className="table-cell text-center py-8 text-muted">Nenhuma compra registrada.</td></tr>
+              <tr><td colSpan={7} className="table-cell text-center py-8 text-muted">Nenhuma compra registrada.</td></tr>
             ) : compras.map(c => (
               <tr key={c.id} className="table-row">
                 <td className="table-cell">{c.id}</td>
@@ -299,12 +375,25 @@ export default function ComprasPage() {
                 <td className="table-cell text-muted text-xs">{c.itens.map(i => `${i.produto.nome} x${i.quantidade}`).join(', ')}</td>
                 <td className="table-cell text-right font-bold text-red-600">{formatCurrency(Number(c.valorTotal))}</td>
                 <td className="table-cell text-xs">
-                  {c.pagamentos.map((p, idx) => (
-                    <div key={idx}>
-                      {formaPagamentoLabel(p.formaPagamento)} {p.parcela}ª - {formatCurrency(Number(p.valor))}
-                      <span className="text-muted ml-1">({formatDate(p.dataVencimento)})</span>
-                    </div>
-                  ))}
+                  {c.pagamentos.map((p, idx) => {
+                    const status = statusParcela(p.dataVencimento, p.dataPagamento)
+                    return (
+                      <div key={idx} className="flex items-center gap-1 mb-0.5">
+                        <span>{formaPagamentoLabel(p.formaPagamento)} {p.parcela}ª - {formatCurrency(Number(p.valor))}</span>
+                        <span className="text-muted">({formatDate(p.dataVencimento)})</span>
+                        <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${status.className}`}>{status.label}</span>
+                      </div>
+                    )
+                  })}
+                </td>
+                <td className="table-cell text-center">
+                  <button
+                    onClick={() => excluirCompra(c.id)}
+                    className="text-red-500 hover:text-red-700 text-sm font-medium"
+                    disabled={mutation.isPending}
+                  >
+                    Excluir
+                  </button>
                 </td>
               </tr>
             ))}

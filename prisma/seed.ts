@@ -1,32 +1,21 @@
 const { PrismaClient } = require('@prisma/client')
 const bcrypt = require('bcryptjs')
 
-function createPrismaClient() {
-  if (process.env.TURSO_DATABASE_URL) {
-    const { PrismaLibSQL } = require('@prisma/adapter-libsql')
-    const { createClient } = require('@libsql/client')
-    const client = createClient({
-      url: process.env.TURSO_DATABASE_URL,
-      authToken: process.env.TURSO_AUTH_TOKEN,
-    })
-    return new PrismaClient({ adapter: new PrismaLibSQL(client) })
-  }
-  return new PrismaClient()
-}
-
-const prisma = createPrismaClient()
+const prisma = new PrismaClient()
 
 async function main() {
   const senhaHash = await bcrypt.hash('admin123', 10)
 
-  await prisma.usuario.create({
-    data: {
+  await prisma.usuario.upsert({
+    where: { usuario: 'admin' },
+    update: {},
+    create: {
       nome: 'Administrador',
       usuario: 'admin',
       senha: senhaHash,
     },
   })
-  console.log('Usuario admin criado')
+  console.log('Usuario admin criado/verificado')
 
   const produtos = await Promise.all([
     prisma.produto.create({ data: { nome: 'Camiseta Basica', estoque: 100, unidade: 'un', codigoProduto: 'CAM001' } }),
@@ -44,6 +33,11 @@ async function main() {
   ])
 
   console.log('Clientes criados:', clientes.length)
+
+  const fornecedor = await prisma.fornecedor.create({
+    data: { nome: 'O Boticário' },
+  })
+  console.log('Fornecedor criado:', fornecedor.nome)
 }
 
 main()

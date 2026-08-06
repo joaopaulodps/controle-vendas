@@ -173,6 +173,20 @@ async function main() {
   `)
   await run('CREATE UNIQUE INDEX IF NOT EXISTS "itens_sorteio_sorteio_id_numero_key" ON "itens_sorteio"("sorteio_id", "numero");')
 
+  await run(`
+    CREATE TABLE IF NOT EXISTS "fornecedores" (
+      "id" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+      "nome" TEXT NOT NULL,
+      "created_at" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+    );
+  `)
+
+  const comprasInfo = await client.execute({ sql: "PRAGMA table_info('compras')", args: [] })
+  const hasFornecedorId = comprasInfo.rows.some((r: any) => r.name === 'fornecedor_id')
+  if (!hasFornecedorId) {
+    await run('ALTER TABLE "compras" ADD COLUMN "fornecedor_id" INTEGER;')
+  }
+
   console.log('Tabelas criadas!')
 
   const adminHash = await bcrypt.hash('admin123', 10)
@@ -192,6 +206,12 @@ async function main() {
     args: ['João Paulo DPS', 'joaopaulodps', jpHash],
   })
   console.log('Usuarios criados: admin, julienemachado, joaopaulodps')
+
+  await run({
+    sql: 'INSERT OR IGNORE INTO fornecedores (nome) VALUES (?)',
+    args: ['O Boticário'],
+  })
+  console.log('Fornecedor padrao criado: O Boticário')
 
   console.log('Setup do Turso concluido!')
 }

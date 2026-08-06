@@ -1,5 +1,8 @@
 export function serializeDecimal(obj: any): any {
   if (obj === null || obj === undefined) return obj
+  if (obj instanceof Date) {
+    return obj.toISOString()
+  }
   if (typeof obj === 'object' && obj.constructor?.name === 'Decimal') {
     return obj.toNumber()
   }

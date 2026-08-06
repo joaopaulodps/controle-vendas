@@ -29,6 +29,16 @@ model Marca {
   @@map("marcas")
 }
 
+model Fornecedor {
+  id        Int      @id @default(autoincrement())
+  nome      String
+  createdAt DateTime @default(now()) @map("created_at")
+
+  compras Compra[]
+
+  @@map("fornecedores")
+}
+
 model Cliente {
   id         Int      @id @default(autoincrement())
   nome       String
@@ -61,15 +71,17 @@ model Produto {
 }
 
 model Compra {
-  id         Int      @id @default(autoincrement())
-  fornecedor String
-  dataCompra DateTime @default(now()) @map("data_compra")
-  valorTotal Float    @map("valor_total")
-  observacao String?
-  createdAt  DateTime @default(now()) @map("created_at")
+  id           Int       @id @default(autoincrement())
+  fornecedor   String
+  fornecedorId Int?      @map("fornecedor_id")
+  dataCompra   DateTime  @default(now()) @map("data_compra")
+  valorTotal   Float     @map("valor_total")
+  observacao   String?
+  createdAt    DateTime  @default(now()) @map("created_at")
 
   itens      ItemCompra[]
   pagamentos PagamentoCompra[]
+  fornecedorRef Fornecedor? @relation(fields: [fornecedorId], references: [id])
 
   @@map("compras")
 }

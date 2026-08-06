@@ -1,4 +1,4 @@
-﻿-- CreateTable
+-- CreateTable
 CREATE TABLE "usuarios" (
     "id" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
     "nome" TEXT NOT NULL,
@@ -152,4 +152,3 @@ CREATE UNIQUE INDEX "usuarios_usuario_key" ON "usuarios"("usuario");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "itens_sorteio_sorteio_id_numero_key" ON "itens_sorteio"("sorteio_id", "numero");
-

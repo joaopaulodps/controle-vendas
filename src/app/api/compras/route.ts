@@ -21,7 +21,7 @@ export async function GET() {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { fornecedor, observacao, itens, pagamentos } = body
+    const { fornecedor, fornecedorId, observacao, itens, pagamentos } = body
 
     if (!fornecedor || !itens || itens.length === 0) {
       return NextResponse.json({ error: 'Fornecedor e itens são obrigatórios' }, { status: 400 })
@@ -40,6 +40,7 @@ export async function POST(request: NextRequest) {
       const compraCriada = await tx.compra.create({
         data: {
           fornecedor,
+          fornecedorId: fornecedorId || null,
           valorTotal,
           observacao,
           itens: {
