@@ -55,7 +55,11 @@ export default function ClientesPage() {
 
   async function excluir(id: number) {
     if (!confirm('Excluir este cliente?')) return
-    await mutation.mutateAsync({ method: 'DELETE', url: `/api/clientes/${id}` })
+    try {
+      await mutation.mutateAsync({ method: 'DELETE', url: `/api/clientes/${id}` })
+    } catch (err: any) {
+      setMsg(err.message)
+    }
   }
 
   return (

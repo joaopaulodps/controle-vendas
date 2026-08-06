@@ -16,8 +16,12 @@ export function useApiMutation(options: UseApiMutationOptions = {}) {
         ...(data.body ? { body: JSON.stringify(data.body) } : {}),
       })
       if (!res.ok) {
-        const err = await res.json()
-        throw new Error(err.error || 'Erro ao salvar')
+        let errorMsg = 'Erro ao salvar'
+        try {
+          const err = await res.json()
+          errorMsg = err.error || errorMsg
+        } catch {}
+        throw new Error(errorMsg)
       }
       return res.json()
     },

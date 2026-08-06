@@ -68,7 +68,11 @@ export default function ProdutosPage() {
 
   async function excluir(id: number) {
     if (!confirm('Excluir este produto?')) return
-    await mutation.mutateAsync({ method: 'DELETE', url: `/api/produtos/${id}` })
+    try {
+      await mutation.mutateAsync({ method: 'DELETE', url: `/api/produtos/${id}` })
+    } catch (err: any) {
+      setMsg(err.message)
+    }
   }
 
   return (

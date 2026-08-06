@@ -193,32 +193,6 @@ async function main() {
   })
   console.log('Usuarios criados: admin, julienemachado, joaopaulodps')
 
-  const produtos = [
-    { nome: 'Camiseta Basica', estoque: 100, unidade: 'un', codigo: 'CAM001' },
-    { nome: 'Calca Jeans', estoque: 50, unidade: 'un', codigo: 'CAL001' },
-    { nome: 'Tenis Esportivo', estoque: 30, unidade: 'un', codigo: 'TEN001' },
-    { nome: 'Bone Aba Reta', estoque: 80, unidade: 'un', codigo: 'BON001' },
-    { nome: 'Mochila Escolar', estoque: 40, unidade: 'un', codigo: 'MOC001' },
-  ]
-
-  for (const p of produtos) {
-    await run({
-      sql: 'INSERT OR IGNORE INTO produtos (nome, estoque, unidade, codigoProduto, updated_at) VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)',
-      args: [p.nome, p.estoque, p.unidade, p.codigo],
-    })
-  }
-  console.log('Produtos criados:', produtos.length)
-
-  await run({
-    sql: 'INSERT OR IGNORE INTO clientes (nome, cpf, telefone) VALUES (?, ?, ?)',
-    args: ['Joao Silva', '123.456.789-00', '(11) 99999-1234'],
-  })
-  await run({
-    sql: 'INSERT OR IGNORE INTO clientes (nome, cpf, telefone) VALUES (?, ?, ?)',
-    args: ['Maria Santos', '987.654.321-00', '(11) 98888-5678'],
-  })
-  console.log('Clientes criados: 2')
-
   console.log('Setup do Turso concluido!')
 }
 

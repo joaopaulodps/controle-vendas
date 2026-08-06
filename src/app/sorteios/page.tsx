@@ -281,7 +281,7 @@ export default function SorteiosPage() {
   })
 
   const mutation = useApiMutation({
-    invalidateKeys: ['sorteios'],
+    invalidateKeys: ['sorteios', 'clientes'],
     onSuccess: () => {
       if (sorteioSelecionadoId) {
         // Invalidar detalhe do sorteio selecionado
@@ -368,24 +368,36 @@ export default function SorteiosPage() {
 
   async function removerItem(numero: number) {
     if (!sorteioSelecionadoId) return
-    await mutation.mutateAsync({
-      method: 'DELETE',
-      url: `/api/sorteios/${sorteioSelecionadoId}/itens?numero=${numero}`,
-    })
+    try {
+      await mutation.mutateAsync({
+        method: 'DELETE',
+        url: `/api/sorteios/${sorteioSelecionadoId}/itens?numero=${numero}`,
+      })
+    } catch (err: any) {
+      setMsg(err.message)
+    }
   }
 
   async function excluirSorteio(id: number) {
     if (!confirm('Excluir este sorteio?')) return
-    await mutation.mutateAsync({ method: 'DELETE', url: `/api/sorteios/${id}` })
-    setSorteioSelecionadoId(null)
+    try {
+      await mutation.mutateAsync({ method: 'DELETE', url: `/api/sorteios/${id}` })
+      setSorteioSelecionadoId(null)
+    } catch (err: any) {
+      setMsg(err.message)
+    }
   }
 
   async function atualizarStatus(id: number, status: string) {
-    await mutation.mutateAsync({
-      method: 'PUT',
-      url: `/api/sorteios/${id}`,
-      body: { status },
-    })
+    try {
+      await mutation.mutateAsync({
+        method: 'PUT',
+        url: `/api/sorteios/${id}`,
+        body: { status },
+      })
+    } catch (err: any) {
+      setMsg(err.message)
+    }
   }
 
   const handleSelectSorteio = useCallback((id: number) => {

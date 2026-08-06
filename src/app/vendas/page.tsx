@@ -52,7 +52,7 @@ export default function VendasPage() {
     queryFn: () => fetch('/api/sorteios').then(r => r.json()),
   })
 
-  const mutation = useApiMutation({ invalidateKeys: ['vendas', 'produtos'] })
+  const mutation = useApiMutation({ invalidateKeys: ['vendas', 'produtos', 'clientes'] })
 
   const totalItens = useMemo(() => calcularTotalItens(itens), [itens])
 
