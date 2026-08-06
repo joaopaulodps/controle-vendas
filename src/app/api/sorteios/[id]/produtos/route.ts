@@ -15,7 +15,7 @@ export async function GET(_request: NextRequest, { params }: { params: { id: str
     })
     return NextResponse.json(serializeDecimal(produtos))
   } catch (error) {
-    return NextResponse.json({ error: 'Erro ao buscar produtos do sorteio' }, { status: 500 })
+    return NextResponse.json([])
   }
 }
 
@@ -62,7 +62,10 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
     })
 
     return NextResponse.json(serializeDecimal(item), { status: 201 })
-  } catch (error) {
+  } catch (error: any) {
+    if (error?.code === 'P2021' || error?.message?.includes('does not exist')) {
+      return NextResponse.json({ error: 'Tabela de produtos do sorteio não configurada. Contate o administrador.' }, { status: 500 })
+    }
     return NextResponse.json({ error: 'Erro ao vincular produto' }, { status: 500 })
   }
 }
